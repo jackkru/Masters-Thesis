@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+
+# clear workspace
+rm(list=ls(all=TRUE))
+
+# set working directory
+setwd("C:\\Users\\Jack\\Documents\\Thesis\\Scraping")
+
+# install and load packages
+source("packages.R")
+
+```
+
+```{r}
+
+# start a selenium server
+selenium_server <- rsDriver(verbose = TRUE, browser = "chrome", port = 4585L, 
+                            version = "latest", chromever = "90.0.4430.24", phantomver = NULL)
+class(selenium_server)
+
+# assign client
+remote_driver <- selenium_server$client
+class(remote_driver)
+
+# open a browser session
+remote_driver$open()
+
+
+```
+
+```{r}
+remote_driver$navigate("https://mediabiasfactcheck.com/right/")
+source_list <- remote_driver$findElements(using = "css", value = "td span a")
+
+for (i in 1:length(source_list)) {
+  remote_driver$navigate("https://mediabiasfactcheck.com/right/")
+  source_list <- remote_driver$findElements(using = "css", value = "td span a")
+  temp_source <- source_list[[i]]$getElementText()
+  remote_driver$navigate(source_list[[i]]$getElementAttribute("href")[[1]])
+  
+  
+  
+}
+
+
+```
+
+```{r}
+remote_driver$navigate("https://mediabiasfactcheck.com/right/")
+source_list <- remote_driver$findElements(using = "css", value = "td span a")
+```
+
+
+```{r}
+remote_driver$navigate(source_list[[1]]$getElementAttribute("href")[[1]])
+```
+
+
+```{r}
+strong_span <- remote_driver$findElements(using = "css", value = "strong span")
+span_strong <- remote_driver$findElements(using = "css", value = "span strong")
+
+for (i in span_strong) {
+  print(i$getElementText())
+  
+}
+```
+
+
+
+```{r}
+remote_driver$close()
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

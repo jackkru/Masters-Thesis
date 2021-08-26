@@ -1,0 +1,128 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+ 
+
+```{r}
+# clear workspace
+rm(list=ls(all=TRUE))
+
+# set working directory
+setwd("C:\\Users\\Jack\\Documents\\Thesis\\Scraping")
+
+# install and load packages
+source("packages.R")
+```
+
+```{r}
+# start a selenium server
+selenium_server <- rsDriver(verbose = TRUE, browser = "chrome", port = 4583L, 
+                            version = "latest", chromever = "90.0.4430.24", phantomver = NULL)
+class(selenium_server)
+
+# assign client
+remote_driver <- selenium_server$client
+class(remote_driver)
+
+# open a browser session
+remote_driver$open()
+```
+
+```{r}
+remote_driver$navigate("https://www.adfontesmedia.com/rankings-by-individual-news-source/")
+source_list <- remote_driver$findElements(using = "css", value = "h2 a")
+
+df <- data.frame(Source = character(),
+                 Bias = character(),
+                 Reliability = character())
+
+art_df <- data.frame(Headline = character(),
+                     Bias = character(),
+                     Reliability = character())
+
+for (j in 1:length(source_list)) {
+    remote_driver$navigate("https://www.adfontesmedia.com/rankings-by-individual-news-source/")
+    source_list <- remote_driver$findElements(using = "css", value = "h2 a")
+    source_name <- str_extract(source_list[[j]]$getElementText()[[1]], ".+?(?= Bias)")
+    remote_driver$navigate(source_list[[j]]$getElementAttribute("href")[[1]])
+    scores <- remote_driver$findElements(using = "css", value = "p strong")
+    
+    rel_score <- scores[[3]]$getElementText()
+    bias_score <- scores[[4]]$getElementText()
+    temp_df <- data.frame(source_name, bias_score, rel_score)
+    names(temp_df) <- c("Source", "Bias", "Reliability")
+    df <- rbind(df, temp_df)
+    
+    
+    art_list <- remote_driver$findElements(using = "css", value = "td a")
+    
+    if (length(art_list) == 0){
+      
+    next
+    
+    } else if (startsWith(art_list[[1]]$getElementText()[[1]], "http")) {
+    
+    next
+      
+    } else {
+      
+      
+    score_list <- remote_driver$findElements(using = "xpath", value = "//td[contains(@class, 'has-text-align-center')]")
+    
+    for (i in 1:length(art_list)) {
+      temp_headline <- art_list[[i]]$getElementText()
+      temp_bias <- score_list[[(2*i)-1]]$getElementText()
+      temp_reli <- score_list[[(2*i)]]$getElementText()
+      temp_df <- data.frame(temp_headline, temp_bias, temp_reli)
+      names(temp_df) <- c("Headline", "Bias", "Reliability")
+      art_df <- rbind(art_df, temp_df)
+      
+    }
+    
+    }
+    
+  
+  
+}
+
+```
+
+
+```{r}
+full_df <- read.csv("C:\\Users\\Jack\\Documents\\Thesis\\Datasets\\DatasetFull.csv", header = TRUE)
+```
+
+```{r}
+final_df <- left_join(full_df, df, by = "Source")
+```
+
+
+
+
+```{r}
+write.csv(art_df, "C:\\Users\\Jack\\Documents\\Thesis\\Datasets\\AdFontes Article Classifications.csv", row.names = FALSE)
+write.csv(df, "C:\\Users\\Jack\\Documents\\Thesis\\Datasets\\AdFontes Source Classifications.csv", row.names = FALSE)
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+
+```{r}
+
+
+```
+
+```{r}
+
+
+```
+

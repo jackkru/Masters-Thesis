@@ -1,0 +1,148 @@
+---
+title: "Dataset Generation"
+output: html_notebook
+---
+
+```{r}
+# clear workspace
+rm(list=ls(all=TRUE))
+
+# set working directory
+setwd("C:\\Users\\Jack\\Documents\\Thesis\\Scraping")
+
+# install and load packages
+source("packages.R")
+```
+
+
+```{r}
+remDr <- remoteDriver(remoteServerAddr = "localhost", port = 4445L, browserName = "chrome")
+
+```
+
+
+```{r}
+# start a selenium server
+selenium_server <- rsDriver(verbose = TRUE, browser = "chrome", port = 4578L, 
+                            version = "latest", chromever = "90.0.4430.24", phantomver = NULL)
+class(selenium_server)
+
+# assign client
+remote_driver <- selenium_server$client
+class(remote_driver)
+
+# open a browser session
+remote_driver$open()
+
+
+```
+
+```{r}
+remote_driver$navigate("https://www.allsides.com/topics/andrew-yang?search=andrew%20yang#gsc.tab=0&gsc.q=andrew%20yang&gsc.page=1")
+headline_list <- remote_driver$findElements(using = "css", value = "td a")
+
+news_source <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-source')]")
+news_title <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-title')]")
+news_text <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-body')]")
+bias_rating <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'bias-image')]//img")
+subject_tag <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'page-tags')]")
+news_date <- remote_driver$findElements(using = "xpath", value = "//span[contains(@class, 'date-display-single')]")
+
+if (length(news_source) <3 | length(news_title)<3 | length(news_text) < 3 | length(bias_rating) < 3 | length(subject_tag) < 1) {
+      print("Gimme a hiiiiya")
+}
+
+
+
+```
+
+```{r}
+# navigate to page
+remote_driver$navigate("https://www.allsides.com/story/admin")
+
+headline_list <- remote_driver$findElements(using = "css", value = "td a")
+
+```
+
+```{r}
+remote_driver$navigate("https://www.allsides.com/story/admin?page= 0")
+
+headline_list <- remote_driver$findElements(using = "css", value = "td a")
+```
+
+
+```{r}
+
+# navigate to page
+remote_driver$navigate("https://www.allsides.com/story/admin")
+
+headline_list <- remote_driver$findElements(using = "css", value = "td a")
+
+df <- data.frame(Source = character(),
+                 Headline = character(),
+                 Text = character(),
+                 Bias = character(),
+                 Subject_Tag = character(),
+                 Date = character())
+
+link <- "https://www.allsides.com/story/admin?page="
+
+for (i in 0:112) {
+  temp_link <- paste(link, i)
+  remote_driver$navigate(temp_link)
+  headline_list <- remote_driver$findElements(using = "css", value = "td a")
+
+  for (j in 1:length(headline_list)) {
+    
+    remote_driver$navigate(temp_link)
+    headline_list <- remote_driver$findElements(using = "css", value = "td a")
+    remote_driver$navigate(headline_list[[j]]$getElementAttribute("href")[[1]])
+  
+    news_source <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-source')]")
+    news_title <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-title')]")
+    news_text <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'news-body')]")
+    bias_rating <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'bias-image')]//img")
+    subject_tag <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'page-tags')]")
+    news_date <- remote_driver$findElements(using = "xpath", value = "//span[contains(@class, 'date-display-single')]")
+    
+    if (length(news_source) <3 | length(news_title)<3 | length(news_text) < 3 | length(bias_rating) < 3 | length(subject_tag) < 1) {
+      #ignore this shit
+    } else {
+  
+    for (i in 1:3) {
+      temp_source <- news_source[[i]]$getElementText()
+      temp_title <- news_title[[i]]$getElementText()
+      temp_text <- news_text[[i]]$getElementText()
+      temp_bias <- bias_rating[[i]]$getElementAttribute("title")
+      temp_tag <- subject_tag[[1]]$getElementText()
+      temp_date <- news_date[[1]]$getElementText()
+      temp_df <- data.frame(temp_source, temp_title, temp_text, temp_bias, temp_tag, temp_date)
+      names(temp_df) <- c("Source", "Headline", "Text", "Bias", "Subject_Tag", "Date")
+      df <- rbind(df, temp_df)
+    }
+    }
+    }
+  }
+```
+
+
+```{r}
+remote_driver$navigate("https://www.adfontesmedia.com/interactive-media-bias-chart/#IMBC")
+site_info <- remote_driver$findElements(using = "xpath", value = "//div[contains(@class, 'toolTipReach')]")
+site_info
+
+```
+
+
+
+```{r}
+remote_driver$close()
+```
+
+
+
+```{r}
+write.csv(df, "C:\\Users\\Jack\\Documents\\Thesis\\Scraping\\InitialDF.csv", row.names = FALSE)
+
+```
+
